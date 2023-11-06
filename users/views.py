@@ -1,18 +1,33 @@
 from django.shortcuts import redirect
+from django.core.exceptions import ValidationError
+from django.contrib import auth
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from django.contrib import auth
-from firebase_admin import auth as firebase_auth
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.permissions import IsAuthenticated
+
 from .authentication import FirebaseAuthentication
-from django.core.exceptions import ValidationError
-
-from BeWyse.users.models import UserAccount
-
+from .models import UserAccount
 from .serializers import UserCreateSerializer,UserSerializer
-from BeWyse.users import authentication
+
+import pyrebase
+
+config = {
+  "apiKey": "AIzaSyBGlB7SuHsUKEvzkQitzglxyeO43oo2up4",
+  "authDomain": "bewyse-51205.firebaseapp.com",
+  "projectId": "bewyse-51205",
+  "storageBucket": "bewyse-51205.appspot.com",
+  "messagingSenderId": "332397128589",
+  "databaseURL": "https://databaseName.firebaseio.com",
+  "appId": "1:332397128589:web:74ddc438967726325d6bc4",
+  "measurementId": "G-MG915TM1RS"
+}
+
+firebase = pyrebase.initialize_app(config)
+pyrebase_auth = firebase.auth()
 
 # Create your views here.
 @api_view(['GET'])
@@ -46,9 +61,10 @@ class LoginUser(APIView):
         try:
             if user is not None:
                 user_data=UserAccount.objects.filter(username=user).first()
+                print(user_data)
                 auth.login(request, user)
                 uid = user_data.username
-                token = firebase_auth.create_custom_token(uid)
+                token = pyrebase_auth.create_custom_token(uid)
                 serializer = UserSerializer(user)
             
                 context = {
@@ -63,6 +79,7 @@ class LoginUser(APIView):
 
 
 class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]
     authentication_classes = [ FirebaseAuthentication ]
     
     def get(self,request):
@@ -75,6 +92,7 @@ class ProfileView(APIView):
 
 
 class EditProfileView(APIView):
+    permission_classes = [IsAuthenticated]
     authentication_classes = [ FirebaseAuthentication ]
     
     def post(self,request):

@@ -14,6 +14,8 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -89,12 +91,12 @@ WSGI_APPLICATION = 'assessment.wsgi.application'
 
 DATABASES = {
     'default':{
-            'ENGINE': 'djongo',
-            'NAME': 'BeWyse',
+            'ENGINE': os.environ.get('DB_ENGINE'),
+            'NAME': os.environ.get('DB_NAME'),
             'CLIENT':
                 {
-                    'host':
-                        'mongodb+srv://joelvarapuram:cgSLq8bqcj7hQUjV@cluster0.pu2smo2.mongodb.net/?retryWrites=true&w=majority'
+                    'host': os.environ.get('DB_HOST')
+                        
                 }
         }
 }
@@ -164,3 +166,12 @@ FIREBASE_TOKEN_URI = os.environ.get('FIREBASE_TOKEN_URI')
 FIREBASE_AUTH_PROVIDER_X509_CERT_URL = os.environ.get('FIREBASE_AUTH_PROVIDER_X509_CERT_URL')
 FIREBASE_CLIENT_X509_CERT_URL = os.environ.get('FIREBASE_CLIENT_X509_CERT_URL')
 FIREBASE_UNIVERSE_DOMAIN = os.environ.get('FIREBASE_UNIVERSE_DOMAIN')
+
+#PYREBASE_CRED
+APIKEY= os.environ.get('APIKEY')
+AUTHDOMAIN= os.environ.get('AUTHDOMAIN')
+PROJECTID= os.environ.get('PROJECTID')
+STORAGEBUCKET = os.environ.get('STORAGEBUCKET')
+MESSAGING_SENDER_ID= os.environ.get('MESSAGING_SENDER_ID')
+APP_ID = os.environ.get('APP_ID')
+MEASUREMENT_ID= os.environ.get('MEASUREMENT_ID')
