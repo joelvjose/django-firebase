@@ -1,6 +1,6 @@
-from django.shortcuts import redirect
+
 from django.core.exceptions import ValidationError
-from django.contrib import auth
+from django.contrib.auth.hashers import check_password
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -13,21 +13,23 @@ from .authentication import FirebaseAuthentication
 from .models import UserAccount
 from .serializers import UserCreateSerializer,UserSerializer
 
-import pyrebase
+from firebase_admin import auth
 
-config = {
-  "apiKey": "AIzaSyBGlB7SuHsUKEvzkQitzglxyeO43oo2up4",
-  "authDomain": "bewyse-51205.firebaseapp.com",
-  "projectId": "bewyse-51205",
-  "storageBucket": "bewyse-51205.appspot.com",
-  "messagingSenderId": "332397128589",
-  "databaseURL": "https://databaseName.firebaseio.com",
-  "appId": "1:332397128589:web:74ddc438967726325d6bc4",
-  "measurementId": "G-MG915TM1RS"
-}
+# import pyrebase
 
-firebase = pyrebase.initialize_app(config)
-pyrebase_auth = firebase.auth()
+# config = {
+#   "apiKey": "AIzaSyBGlB7SuHsUKEvzkQitzglxyeO43oo2up4",
+#   "authDomain": "bewyse-51205.firebaseapp.com",
+#   "projectId": "bewyse-51205",
+#   "storageBucket": "bewyse-51205.appspot.com",
+#   "messagingSenderId": "332397128589",
+#   "databaseURL": "https://databaseName.firebaseio.com",
+#   "appId": "1:332397128589:web:74ddc438967726325d6bc4",
+#   "measurementId": "G-MG915TM1RS"
+# }
+
+# firebase = pyrebase.initialize_app(config)
+# pyrebase_auth = firebase.auth()
 
 
 class RoutesView(APIView):
@@ -52,8 +54,7 @@ class RegisterUser(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
         user = serializer.create(serializer.validated_data)
-
-        return Response(user, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class LoginUser(APIView):
     authentication_classes = [] 
@@ -65,14 +66,17 @@ class LoginUser(APIView):
     def post(self,request):
         username = request.data['username']
         password= request.data['password']
-        user = auth.authenticate(request, username = username, password = password)
-        try:
-            if user is not None:
-                user_data=UserAccount.objects.filter(username=user).first()
-                print(user_data)
-                auth.login(request, user)
-                uid = user_data.username
-                token = pyrebase_auth.create_custom_token(uid)
+        
+        user = UserAccount.objects.filter(username=username).first()
+        if user is not None:
+            hashed_password = user.password
+            password_match = check_password(password, hashed_password)
+            if password_match:
+                print("true")
+                uid = user.username
+                print(uid)
+                token = auth.create_custom_token(uid)
+                print(token)
                 serializer = UserSerializer(user)
             
                 context = {
@@ -81,22 +85,24 @@ class LoginUser(APIView):
                 }
                 return Response(context, status=status.HTTP_200_OK)
             else:
-                raise AuthenticationFailed('Username or password is invalid')
-        except:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+                return Response({'Username or password is invalid'},status=status.HTTP_404_NOT_FOUND) 
+        else:
+            return Response({'Username or password is invalid'},status=status.HTTP_404_NOT_FOUND) 
+        
 
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [FirebaseAuthentication]
+    authentication_classes = [ FirebaseAuthentication ]
     
     def get(self,request):
         try:
-            data = UserAccount.objects.get(username = request.user)
+            username =  request.user.username
+            data = UserAccount.objects.get(username = username)
             serializer = UserSerializer(data)
             return Response(serializer.data, status = status.HTTP_200_OK)
-        except:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response(str(e),status=status.HTTP_404_NOT_FOUND)
 
 
 class EditProfileView(APIView):
