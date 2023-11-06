@@ -6,28 +6,16 @@ from django.contrib.auth.models import AbstractBaseUser,BaseUserManager
 # Create your models here.
 class UserAccountManager(BaseUserManager):
     def create_user(self,email,password,username=None,first_name=None,last_name=None,):
-        if not email or not password:
-            raise ValueError("Email and password are required")
         
-        if (email and len(email)>100 ) or (username and len(username)>100 ) or (first_name and len(first_name)>100) or (last_name and len(last_name)>100):
-            raise ValueError("Only 100 characters are allowed for a field")
-        
-        if len(password)<8:
-            raise ValueError("This password is too short. It must contain at least 8 characters")
-        
-        if UserAccount.objects.filter(username=username).exists():
-            raise ValidationError("A user with that username already exists")
-        
-        if username is None:
-            username = email.split('@')[0]
-            username = re.sub(r'\W+', '', username).lower()
-            base_username = username
-            suffix = 1
-            while UserAccount.objects.filter(username=username).exists():
-                username = f'{base_username}{suffix}'
-                suffix += 1
-            
-            
+        if username == "":
+                username = email.split('@')[0]
+                username = re.sub(r'\W+', '', username).lower()
+                base_username = username
+                suffix = 1
+                while UserAccount.objects.filter(username=username).exists():
+                    username = f'{base_username}{suffix}'
+                    suffix += 1
+                    
         user = self.model(
             email = self.normalize_email(email),
             username = username,

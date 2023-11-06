@@ -1,4 +1,4 @@
-
+import re
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import check_password
 
@@ -14,22 +14,6 @@ from .models import UserAccount
 from .serializers import UserCreateSerializer,UserSerializer
 
 from firebase_admin import auth
-
-# import pyrebase
-
-# config = {
-#   "apiKey": "AIzaSyBGlB7SuHsUKEvzkQitzglxyeO43oo2up4",
-#   "authDomain": "bewyse-51205.firebaseapp.com",
-#   "projectId": "bewyse-51205",
-#   "storageBucket": "bewyse-51205.appspot.com",
-#   "messagingSenderId": "332397128589",
-#   "databaseURL": "https://databaseName.firebaseio.com",
-#   "appId": "1:332397128589:web:74ddc438967726325d6bc4",
-#   "measurementId": "G-MG915TM1RS"
-# }
-
-# firebase = pyrebase.initialize_app(config)
-# pyrebase_auth = firebase.auth()
 
 
 class RoutesView(APIView):
@@ -50,11 +34,34 @@ class RegisterUser(APIView):
     permission_classes = [AllowAny]
     
     def post(self,request):
-        serializer = UserCreateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-        user = serializer.create(serializer.validated_data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        username = request.data['username']
+        password= request.data['password']
+        email = request.data['email']
+        first_name = request.data['first_name']
+        last_name = request.data['last_name']
+        try:
+            if not email or not password:
+                raise ValueError("Email and password are required")
+            
+            if (email and len(email)>100 ) or (username and len(username)>100 ) or (first_name and len(first_name)>100) or (last_name and len(last_name)>100):
+                raise ValueError("Only 100 characters are allowed for a field")
+            
+            if password and len(password)<8:
+                raise ValueError("This password is too short. It must contain at least 8 characters")
+            
+            if UserAccount.objects.filter(username=username).exists():
+                raise ValueError("A user with that username already exists")
+            
+            
+                    
+            serializer = UserCreateSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+            user = serializer.create(serializer.validated_data)
+            serializer = UserCreateSerializer(user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(str(e),status=status.HTTP_400_BAD_REQUEST)
 
 class LoginUser(APIView):
     authentication_classes = [] 
@@ -64,8 +71,7 @@ class LoginUser(APIView):
         return Response(status=status.HTTP_200_OK)
 
     def post(self,request):
-        username = request.data['username']
-        password= request.data['password']
+        
         
         user = UserAccount.objects.filter(username=username).first()
         if user is not None:
@@ -92,8 +98,8 @@ class LoginUser(APIView):
 
 
 class ProfileView(APIView):
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [ FirebaseAuthentication ]
+    # permission_classes = [IsAuthenticated]
+    # authentication_classes = [ FirebaseAuthentication ]
     
     def get(self,request):
         try:
@@ -123,5 +129,5 @@ class EditProfileView(APIView):
                 return Response(serialized_data, status=status.HTTP_200_OK)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response(str(e),status=status.HTTP_404_NOT_FOUND)
