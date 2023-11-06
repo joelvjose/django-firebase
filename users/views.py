@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from .authentication import FirebaseAuthentication
 from .models import UserAccount
@@ -29,19 +29,24 @@ config = {
 firebase = pyrebase.initialize_app(config)
 pyrebase_auth = firebase.auth()
 
-# Create your views here.
-@api_view(['GET'])
-def getRoutes(request):
-    routes = [
-        'accounts/register/',
-        'accounts/login/',
-        'accounts/profile/view/',
-        'accounts/profile/edit/',
-    ]
+
+class RoutesView(APIView):
+    authentication_classes = [] 
+    permission_classes = [AllowAny]
     
-    return Response(routes)
+    def get(self, request):
+        routes = [
+            'accounts/register/',
+            'accounts/login/',
+            'accounts/profile/view/',
+            'accounts/profile/edit/',
+        ]
+        return Response(routes)
 
 class RegisterUser(APIView):
+    authentication_classes = [] 
+    permission_classes = [AllowAny]
+    
     def post(self,request):
         serializer = UserCreateSerializer(data=request.data)
         if not serializer.is_valid():
@@ -51,6 +56,9 @@ class RegisterUser(APIView):
         return Response(user, status=status.HTTP_201_CREATED)
 
 class LoginUser(APIView):
+    authentication_classes = [] 
+    permission_classes = [AllowAny]
+    
     def get(self, request, *args, **kwargs):
         return Response(status=status.HTTP_200_OK)
 
@@ -80,7 +88,7 @@ class LoginUser(APIView):
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [ FirebaseAuthentication ]
+    authentication_classes = [FirebaseAuthentication]
     
     def get(self,request):
         try:
